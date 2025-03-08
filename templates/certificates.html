@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}SSL Certificates - SyslogManager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3>SSL Certificates Management</h3>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <h4>Current Certificate Status</h4>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Component</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Certificate File</td>
+                                        <td>
+                                            {% if cert_status.has_cert %}
+                                                <span class="badge bg-success">Installed</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Not Installed</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Private Key</td>
+                                        <td>
+                                            {% if cert_status.has_key %}
+                                                <span class="badge bg-success">Installed</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Not Installed</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Validation</td>
+                                        <td>
+                                            {% if cert_status.is_valid %}
+                                                <span class="badge bg-success">Valid</span>
+                                            {% elif cert_status.has_cert and cert_status.has_key %}
+                                                <span class="badge bg-danger">Invalid</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">N/A</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>HTTPS Status</td>
+                                        <td>
+                                            {% if cert_status.is_valid %}
+                                                <span class="badge bg-success">Enabled</span>
+                                                <small class="text-muted d-block mt-1">Restart server to apply any changes</small>
+                                            {% else %}
+                                                <span class="badge bg-warning">Disabled</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <h4>Upload SSL Certificate</h4>
+                        <p class="text-muted">
+                            Upload your SSL certificate and private key files in PEM format.
+                            After uploading, you will need to restart the server for the changes to take effect.
+                        </p>
+                        
+                        <form method="POST" enctype="multipart/form-data">
+                            {{ form.csrf_token }}
+                            
+                            <div class="mb-3">
+                                {{ form.cert_file.label(class="form-label") }}
+                                {{ form.cert_file(class="form-control") }}
+                                <div class="form-text">The certificate file must be in PEM format.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                {{ form.key_file.label(class="form-label") }}
+                                {{ form.key_file(class="form-control") }}
+                                <div class="form-text">The private key file must be in PEM format and not password protected.</div>
+                            </div>
+                            
+                            <div class="alert alert-info">
+                                <h5 class="alert-heading">Important Notes:</h5>
+                                <ul>
+                                    <li>Both files must be in PEM format</li>
+                                    <li>The private key should not be password protected</li>
+                                    <li>The certificate should be valid and not expired</li>
+                                    <li>After uploading, you will need to restart the server</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+                                {{ form.submit(class="btn btn-primary") }}
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

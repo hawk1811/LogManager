@@ -1,0 +1,505 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SyslogManager{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>System Metrics</h3>
+                <a href="{{ url_for('monitoring') }}" class="btn btn-info">
+                    <i class="bi bi-gear"></i> Monitoring Settings
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <h5>CPU Usage</h5>
+                        <div class="progress mb-2">
+                            <div id="cpu-usage-bar" class="progress-bar" role="progressbar" style="width: {{ metrics.cpu_percent }}%;"
+                                aria-valuenow="{{ metrics.cpu_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                <span id="cpu-usage">{{ metrics.cpu_percent }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <h5>Memory Usage</h5>
+                        <div class="progress mb-2">
+                            <div id="memory-usage-bar" class="progress-bar" role="progressbar" style="width: {{ metrics.memory_percent }}%;"
+                                aria-valuenow="{{ metrics.memory_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                <span id="memory-usage">{{ metrics.memory_percent }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <h5>Disk Usage</h5>
+                        <div class="progress mb-2">
+                            <div id="disk-usage-bar" class="progress-bar" role="progressbar" style="width: {{ metrics.disk_percent }}%;"
+                                aria-valuenow="{{ metrics.disk_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                <span id="disk-usage">{{ metrics.disk_percent }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <h5>Events Per Second</h5>
+                        <div class="p-2 bg-light border rounded">
+                            <span id="events-per-second" class="h4">{{ metrics.events_per_second }}</span> <span class="text-muted">EPS</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>Syslog Sources</h3>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addSourceModal">
+                    <i class="bi bi-plus"></i> Add Source
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="sourcesTable" class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Source Name</th>
+                                <th>Source Type</th>
+                                <th>Source Details</th>
+                                <th>Target Type</th>
+                                <th>Total Logs</th>
+                                <th>Last Log</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for source_id, source in sources.items() %}
+                            <tr class="source-stats" data-source-id="{{ source_id }}">
+                                <td>{{ source.name }}</td>
+                                <td>
+                                    {% if source.source_type == 'syslog' %}
+                                        <span class="badge bg-primary">Syslog</span>
+                                    {% elif source.source_type == 'folder' %}
+                                        <span class="badge bg-success">Folder</span>
+                                    {% elif source.source_type == 'file' %}
+                                        <span class="badge bg-info">File</span>
+                                    {% elif source.source_type == 'windows_event' %}
+                                        <span class="badge bg-warning">Windows Event</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if source.source_type == 'syslog' %}
+                                        <span class="badge bg-secondary">IP: {{ source.source_ip }}</span>
+                                        <span class="badge bg-secondary">Port: {{ source.port|default(514) }}</span>
+                                    {% elif source.source_type == 'folder' %}
+                                        <small>{{ source.folder_path }}</small>
+                                    {% elif source.source_type == 'file' %}
+                                        <small>{{ source.file_path }}</small>
+                                    {% elif source.source_type == 'windows_event' %}
+                                        <span class="badge bg-secondary">Log: {{ source.event_log }}</span>
+                                        <span class="badge bg-secondary">Level: {{ source.min_level|default('Information') }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if source.target_type == 'file' %}
+                                        <span class="badge bg-primary">File</span>
+                                        <small>{{ source.target_directory }}</small>
+                                    {% elif source.target_type == 'hec' %}
+                                        <span class="badge bg-success">HEC</span>
+                                        <small>{{ source.hec_url }}</small>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Unknown</span>
+                                    {% endif %}
+                                </td>
+                                <td id="source-{{ source_id }}-log-count">{{ source.log_count }}</td>
+                                <td>
+                                    {% if source.last_log_time %}
+                                    <span id="source-{{ source_id }}-last-log-time" class="last-log-time" data-timestamp="{{ source.last_log_time }}">
+                                        {{ source.last_log_time }}
+                                    </span>
+                                    {% else %}
+                                    <span id="source-{{ source_id }}-last-log-time">No logs yet</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-primary investigate-btn" 
+                                                data-source-id="{{ source_id }}" data-source-name="{{ source.name }}">
+                                            Investigate
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-warning edit-source-btn"
+                                                data-source-id="{{ source_id }}">
+                                            Edit
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger delete-source-btn"
+                                                data-source-id="{{ source_id }}" data-source-name="{{ source.name }}">
+                                            Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Source Modal -->
+<div class="modal fade" id="addSourceModal" tabindex="-1" aria-labelledby="addSourceModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addSourceModalLabel">Add Syslog Source</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sourceForm">
+                    <input type="hidden" id="sourceId" name="id" value="">
+                    <div class="mb-3">
+                        <label for="sourceName" class="form-label">Source Name</label>
+                        <input type="text" class="form-control" id="sourceName" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="sourceType" class="form-label">Source Type</label>
+                        <select class="form-control" id="sourceType" name="source_type" required>
+                            <option value="syslog">Syslog UDP</option>
+                            <option value="folder">Local Folder</option>
+                            <option value="file">Local File</option>
+                            <option value="windows_event">Windows Event Log</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Syslog specific fields -->
+                    <div class="source-type-fields source-type-syslog">
+                        <div class="mb-3">
+                            <label for="sourceIP" class="form-label">Source IP</label>
+                            <input type="text" class="form-control" id="sourceIP" name="source_ip" 
+                                   placeholder="IP, CIDR or Range (e.g., 192.168.1.1, 10.0.0.0/24, 192.168.1.1-192.168.1.10)">
+                        </div>
+                        <div class="mb-3">
+                            <label for="sourcePort" class="form-label">UDP Port</label>
+                            <input type="number" class="form-control" id="sourcePort" name="port" value="514" min="1" max="65535">
+                            <div class="form-text">UDP port to listen on. Default is 514.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Folder specific fields -->
+                    <div class="source-type-fields source-type-folder" style="display: none;">
+                        <div class="mb-3">
+                            <label for="folderPath" class="form-label">Folder Path</label>
+                            <input type="text" class="form-control" id="folderPath" name="folder_path">
+                            <div class="form-text">Absolute path to the folder to monitor (e.g., /var/log/apache2)</div>
+                        </div>
+                    </div>
+                    
+                    <!-- File specific fields -->
+                    <div class="source-type-fields source-type-file" style="display: none;">
+                        <div class="mb-3">
+                            <label for="filePath" class="form-label">File Path</label>
+                            <input type="text" class="form-control" id="filePath" name="file_path">
+                            <div class="form-text">Absolute path to the file to monitor (e.g., /var/log/syslog)</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Windows Event specific fields -->
+                    <div class="source-type-fields source-type-windows_event" style="display: none;">
+                        <div class="mb-3">
+                            <label for="eventLog" class="form-label">Event Log</label>
+                            <select class="form-control" id="eventLog" name="event_log">
+                                <option value="" disabled selected>Loading available logs...</option>
+                            </select>
+                            <div class="form-text">Select the Windows Event log to monitor.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="minLevel" class="form-label">Minimum Severity Level</label>
+                            <select class="form-control" id="minLevel" name="min_level">
+                                <option value="Verbose">Verbose (All levels)</option>
+                                <option value="Information" selected>Information</option>
+                                <option value="Warning">Warning</option>
+                                <option value="Error">Error</option>
+                                <option value="Critical">Critical</option>
+                            </select>
+                            <div class="form-text">Only events with this severity level or higher will be processed.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="includeProviders" class="form-label">Include Providers (Optional)</label>
+                            <input type="text" class="form-control" id="includeProviders" name="include_providers" 
+                                   placeholder="Comma-separated list of providers to include">
+                            <div class="form-text">Leave empty to include all providers, or specify providers to include.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="excludeProviders" class="form-label">Exclude Providers (Optional)</label>
+                            <input type="text" class="form-control" id="excludeProviders" name="exclude_providers"
+                                   placeholder="Comma-separated list of providers to exclude">
+                            <div class="form-text">Specify providers to exclude from monitoring. Takes precedence over includes.</div>
+                        </div>
+                        <div class="alert alert-info">
+                            <h5 class="alert-heading">Windows Event Log Monitoring</h5>
+                            <p>This feature allows you to monitor Windows Event logs just like other log sources. Events will be:</p>
+                            <ul>
+                                <li>Filtered based on severity level and providers</li>
+                                <li>Formatted in a syslog-compatible format</li>
+                                <li>Processed like other log sources (file or HEC)</li>
+                            </ul>
+                            <p><strong>Note:</strong> This feature requires the python-evtx module and is only available on Windows systems.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Target type selection -->
+                    <div class="mb-3">
+                        <label for="targetType" class="form-label">Target Type</label>
+                        <select class="form-control" id="targetType" name="target_type" required>
+                            <option value="file">File</option>
+                            <option value="hec">HTTP Event Collector (HEC)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- File target specific fields -->
+                    <div class="target-type-fields target-type-file">
+                        <div class="mb-3">
+                            <label for="targetDirectory" class="form-label">Target Directory</label>
+                            <input type="text" class="form-control" id="targetDirectory" name="target_directory">
+                            <div class="form-text">Use absolute path or network share (e.g., /path/to/logs or \\server\share)</div>
+                        </div>
+                    </div>
+                    
+                    <!-- HEC target specific fields -->
+                    <div class="target-type-fields target-type-hec" style="display: none;">
+                        <div class="mb-3">
+                            <label for="hecUrl" class="form-label">HEC URL</label>
+                            <input type="text" class="form-control" id="hecUrl" name="hec_url" 
+                                   placeholder="https://splunk.example.com:8088/services/collector">
+                        </div>
+                        <div class="mb-3">
+                            <label for="hecToken" class="form-label">HEC Token</label>
+                            <input type="text" class="form-control" id="hecToken" name="hec_token">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveSourceBtn">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Investigation Modal -->
+<div class="modal fade" id="investigateModal" tabindex="-1" aria-labelledby="investigateModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="investigateModalLabel">Investigate Logs</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <form id="investigateForm">
+                            <input type="hidden" id="investigateSourceId" name="source_id">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="timeRange" class="form-label">Time Range</label>
+                                    <input type="text" class="form-control" id="timeRange" name="timeRange">
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary">Search</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="table-responsive">
+                            <table id="logsTable" class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Source IP</th>
+                                        <th>Message</th>
+                                        <th>Filename</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Log data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the source "<span id="deleteSourceName"></span>"?</p>
+                <p class="text-danger">This will not delete the log files, but the source configuration will be removed.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Additional JavaScript will be loaded from main.js
+    
+    // Initialize Windows Event log options when source type changes
+    $('#sourceType').on('change', function() {
+        if ($(this).val() === 'windows_event') {
+            loadWindowsEventLogs();
+        }
+    });
+    
+    // Load Windows Event logs
+    function loadWindowsEventLogs() {
+        // Clear current options
+        $('#eventLog').html('<option value="" disabled selected>Loading available logs...</option>');
+        
+        // Fetch available logs
+        $.ajax({
+            url: '/api/windows_event_logs',
+            type: 'GET',
+            success: function(response) {
+                if (response.status === 'success') {
+                    // Check if Windows Event monitoring is available
+                    if (response.available) {
+                        // Clear and populate the select
+                        $('#eventLog').empty();
+                        
+                        // Add options for each available log
+                        $.each(response.logs, function(name, path) {
+                            $('#eventLog').append($('<option>', {
+                                value: name,
+                                text: name + ' (' + path + ')'
+                            }));
+                        });
+                        
+                        // If no logs available, show message
+                        if (Object.keys(response.logs).length === 0) {
+                            $('#eventLog').html('<option value="" disabled selected>No logs available</option>');
+                        }
+                    } else {
+                        // Show not available message
+                        $('#eventLog').html('<option value="" disabled selected>Windows Event monitoring not available</option>');
+                        
+                        // Show alert
+                        alert('Windows Event monitoring is not available on this system. This feature requires the python-evtx module and is only available on Windows systems.');
+                    }
+                } else {
+                    // Show error message
+                    $('#eventLog').html('<option value="" disabled selected>Error loading logs</option>');
+                    console.error('Error loading Windows Event logs:', response.message);
+                }
+            },
+            error: function(xhr) {
+                // Show error message
+                $('#eventLog').html('<option value="" disabled selected>Error loading logs</option>');
+                console.error('Error loading Windows Event logs:', xhr.responseText);
+            }
+        });
+    }
+    
+    // Update edit source button click handler for Windows Event logs
+    $(document).on('click', '.edit-source-btn', function() {
+        const sourceId = $(this).data('source-id');
+        
+        // Fetch source data
+        $.ajax({
+            url: '/api/sources/' + sourceId,
+            type: 'GET',
+            success: function(response) {
+                if (response.status === 'success') {
+                    const source = response.source;
+                    
+                    // Reset form
+                    resetSourceForm();
+                    
+                    // Populate form
+                    $('#sourceId').val(sourceId);
+                    $('#sourceName').val(source.name);
+                    
+                    // Set source type
+                    $('#sourceType').val(source.source_type || 'syslog');
+                    $('#sourceType').trigger('change');
+                    
+                    // Set source type fields
+                    if (source.source_type === 'syslog') {
+                        $('#sourceIP').val(source.source_ip);
+                        $('#sourcePort').val(source.port || 514);
+                    } else if (source.source_type === 'folder') {
+                        $('#folderPath').val(source.folder_path);
+                    } else if (source.source_type === 'file') {
+                        $('#filePath').val(source.file_path);
+                    } else if (source.source_type === 'windows_event') {
+                        // Load Windows Event logs first
+                        loadWindowsEventLogs();
+                        
+                        // Set fields after a short delay to ensure the options are loaded
+                        setTimeout(function() {
+                            $('#eventLog').val(source.event_log);
+                            $('#minLevel').val(source.min_level || 'Information');
+                            $('#includeProviders').val(source.include_providers || '');
+                            $('#excludeProviders').val(source.exclude_providers || '');
+                        }, 500);
+                    }
+                    
+                    // Set target type
+                    $('#targetType').val(source.target_type || 'file');
+                    $('#targetType').trigger('change');
+                    
+                    // Set target type fields
+                    if (source.target_type === 'file') {
+                        $('#targetDirectory').val(source.target_directory);
+                    } else if (source.target_type === 'hec') {
+                        $('#hecUrl').val(source.hec_url);
+                        $('#hecToken').val(source.hec_token);
+                    }
+                    
+                    // Update modal title and show
+                    $('#addSourceModalLabel').text('Edit Source');
+                    $('#addSourceModal').modal('show');
+                } else {
+                    alert('Error: ' + response.message);
+                }
+            },
+            error: function(xhr) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    alert('Error: ' + response.message);
+                } catch (e) {
+                    alert('An error occurred while fetching the source data.');
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,238 @@
+/* 
+ * SyslogManager - Custom Styles
+ */
+
+body {
+    padding-bottom: 70px; /* For fixed footer */
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Main container */
+.container-fluid {
+    flex: 1;
+}
+
+/* Footer styles */
+.footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    height: 60px;
+    line-height: 60px;
+    background-color: #f5f5f5;
+    z-index: 1000;
+}
+
+/* Source IP badges */
+.source-ip-badge {
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    padding: 5px 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.source-ip-badge button {
+    margin-left: 5px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: #dc3545;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* DataTables customizations */
+div.dataTables_wrapper div.dataTables_filter {
+    text-align: right;
+    margin-bottom: 10px;
+}
+
+div.dataTables_wrapper div.dataTables_length {
+    margin-bottom: 10px;
+}
+
+/* Card styles */
+.card {
+    margin-bottom: 20px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+    padding: 0.75rem 1.25rem;
+}
+
+/* Table styles */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Form styles */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+/* Modal styles */
+.modal-xl {
+    max-width: 90%;
+}
+
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+}
+
+/* Button styles */
+.btn-group {
+    display: flex;
+    gap: 5px;
+}
+
+/* Dashboard specific styles */
+.source-ips-list {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+/* Truncate long messages in the logs table */
+#logsTable td:nth-child(3) {
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Expanded view for log messages */
+.expanded-message {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Loading indicator */
+.loading-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 0.2em solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spinner-border .75s linear infinite;
+}
+
+@keyframes spinner-border {
+    to { transform: rotate(360deg); }
+}
+
+/* DateRangePicker customizations */
+.daterangepicker {
+    z-index: 1100 !important;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 768px) {
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .source-ip-badge {
+        display: block;
+        margin-bottom: 5px;
+    }
+    
+    .modal-xl {
+        max-width: 100%;
+    }
+}
+
+/* Disabled form section */
+.bg-light-disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Pre-formatted JSON sample */
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.85rem;
+}
+
+/* Custom fields table */
+.table-sm {
+    font-size: 0.875rem;
+}
+
+/* Monitoring status section */
+.alert-info h5 .badge {
+    vertical-align: middle;
+}
+
+/* Form sections */
+.monitoring-section {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border-radius: 0.25rem;
+}
+
+/* Custom field inputs */
+.custom-field-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.custom-field-row .btn-sm {
+    margin-left: 0.5rem;
+}
+
+/* Monitoring data selection checkboxes */
+.data-selection-group .form-check {
+    margin-bottom: 0.75rem;
+}
+
+.data-selection-group .form-text {
+    margin-left: 1.75rem;
+}
+
+/* Monitoring card header with status indicator */
+.monitoring-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.monitoring-status-indicator {
+    display: inline-flex;
+    align-items: center;
+}
+
+.monitoring-status-indicator .status-dot {
+    height: 10px;
+    width: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.status-dot.active {
+    background-color: #28a745;
+}
+
+.status-dot.inactive {
+    background-color: #dc3545;
+}
